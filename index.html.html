@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Einsetzungsverfahren – interaktiv</title>
+<style>
+:root{
+ --bg:#fbfcfc;--ink:#263330;--muted:#71807c;--line:#e1e8e5;--card:#fff;
+ --c1:#dff1e6;--c1b:#91c5a3;--c2:#e5f0f9;--c2b:#9abedb;--c3:#fbe9dc;--c3b:#e6b993;
+ --c4:#f2e7f6;--c4b:#c6a6d3;--warn:#fff2e7;--warnb:#efc6a6
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Trebuchet MS","Segoe UI",Arial,sans-serif}
+button{font:inherit}.app{max-width:1100px;margin:auto;padding:25px 24px 60px}
+header{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:34px}
+h1{font-size:27px;margin:0}.sub{font-size:14px;color:var(--muted);margin-top:4px}
+.new{border:1px solid var(--line);background:white;border-radius:12px;padding:10px 14px;font-weight:800;cursor:pointer}
+#intro{max-width:790px;margin:0 auto}
+.prompt{text-align:center;color:var(--muted);font-size:15px;margin-bottom:18px}
+.lgs{background:white;border:1px solid var(--line);border-radius:18px;padding:25px 30px}
+.eqrow{display:grid;grid-template-columns:38px 1fr;align-items:center;min-height:65px}
+.roman{font-size:13px;font-weight:900;color:var(--muted)}
+.math{font-family:"Cambria Math","Times New Roman",serif}
+.eq{font-size:31px}
+.dragterm{display:inline-block;padding:5px 8px;border-radius:10px;background:var(--c1);border:1.5px solid var(--c1b);cursor:grab;user-select:none;touch-action:none}
+.target{display:inline-flex;min-width:42px;justify-content:center;border-radius:9px;padding:4px 6px;border:2px dashed var(--c2b);background:var(--c2);cursor:pointer}
+.target.over{outline:4px solid rgba(154,190,219,.25)}
+.tip{text-align:center;font-size:13px;color:var(--muted);margin-top:14px}
+#board{display:none;max-width:900px;margin:0 auto}
+.stephead{text-align:center;margin-bottom:24px}.stephead b{font-size:15px}.stephead div{color:var(--muted);font-size:13px;margin-top:5px}
+.history{display:flex;flex-direction:column;align-items:center;gap:2px}
+.line{width:100%;display:grid;grid-template-columns:minmax(0,1fr) 220px;align-items:center;min-height:78px;border-bottom:1px solid #edf1ef}
+.line:last-child{border-bottom:0}
+.expression{text-align:center;font-size:34px;white-space:nowrap;padding:10px}
+.operation{border-left:2px solid #7e8a87;min-height:43px;padding:9px 14px;display:flex;align-items:center;font-size:14px;color:#596762}
+.token{display:inline-block;border-radius:9px;padding:4px 6px;border:1.5px solid transparent;cursor:pointer;transition:.12s}
+.token:hover{filter:brightness(.98);outline:2px solid rgba(70,90,84,.08)}
+.t1{background:var(--c1);border-color:var(--c1b)}.t2{background:var(--c2);border-color:var(--c2b)}.t3{background:var(--c3);border-color:var(--c3b)}.t4{background:var(--c4);border-color:var(--c4b)}
+.token.done{opacity:.55}.paren{cursor:pointer;border-radius:8px;padding:2px 3px}.paren:hover{background:#f0f3f2}
+.feedback{display:none;max-width:700px;margin:18px auto 0;padding:12px 15px;border-radius:12px;background:var(--warn);border:1px solid var(--warnb);font-size:14px;line-height:1.45}
+.feedback.show{display:block}
+.modalback{display:none;position:fixed;inset:0;background:rgba(30,42,38,.18);align-items:center;justify-content:center;padding:20px;z-index:20}
+.modalback.show{display:flex}.modal{width:min(420px,100%);background:white;border:1px solid var(--line);border-radius:18px;padding:21px;box-shadow:0 18px 55px rgba(40,55,50,.16)}
+.modal h2{font-size:18px;margin:0 0 6px}.selectedText{font-size:26px;margin:13px 0 17px;padding:10px;text-align:center;border-radius:12px;background:#f6f8f7}
+.actions{display:grid;gap:8px}.action{border:1px solid #d7e0dc;background:white;border-radius:11px;padding:11px;text-align:left;cursor:pointer;font-weight:750}.action:hover{background:#f5f8f7}.cancel{border:0;background:transparent;color:var(--muted);margin-top:12px;cursor:pointer}
+@media(max-width:700px){.app{padding:18px 12px}.lgs{padding:18px 14px}.eq{font-size:25px}.line{grid-template-columns:1fr 145px}.expression{font-size:25px;overflow-x:auto;text-align:left}.operation{font-size:12px;padding:8px}.eqrow{grid-template-columns:28px 1fr}}
+</style>
+</head>
+<body>
+<div class="app">
+<header><div><h1>Einsetzungsverfahren</h1><div class="sub">Die Gleichung ist deine Arbeitsfläche.</div></div><button class="new" id="new">↻ Neues LGS</button></header>
+
+<section id="intro">
+ <div class="prompt">Welche Information aus Gleichung I kannst du direkt in Gleichung II einsetzen?</div>
+ <div class="lgs" id="lgs"></div>
+ <div class="tip">Ziehe den farbig markierten Ausdruck direkt auf die passende Variable in Gleichung II. Auf dem iPad: Ausdruck antippen → Ziel antippen.</div>
+</section>
+
+<section id="board">
+ <div class="stephead"><b id="stepTitle">Arbeite an der Gleichung weiter.</b><div id="stepHint">Klicke immer genau das Element an, das du verändern möchtest.</div></div>
+ <div class="history" id="history"></div>
+ <div class="feedback" id="feedback"></div>
+</section>
+</div>
+
+<div class="modalback" id="modalback">
+ <div class="modal" role="dialog" aria-modal="true">
+  <h2>Was möchtest du mit dem Element machen?</h2>
+  <div class="selectedText math" id="selectedText"></div>
+  <div class="actions" id="actions"></div>
+  <button class="cancel" id="cancel">Abbrechen</button>
+ </div>
+</div>
+
+<script>
+(()=>{
+let T, phase=0, selectedDrag=false, currentToken=null;
+const tasks=[
+ {a:2,b:1,c:3,d:1,y:2},{a:1,b:3,c:2,d:1,y:2},{a:2,b:2,c:2,d:1,y:1},
+ {a:3,b:1,c:1,d:2,y:2},{a:2,b:3,c:1,d:2,y:1},{a:1,b:2,c:3,d:1,y:2}
+];
+const $=s=>document.querySelector(s);
+function term(){return `${T.a===1?'':T.a}y + ${T.b}`}
+function make(){T={...tasks[Math.floor(Math.random()*tasks.length)]};T.x=T.a*T.y+T.b;T.rhs=T.c*T.x+T.d*T.y;phase=0;selectedDrag=false;$('#intro').style.display='block';$('#board').style.display='none';$('#feedback').className='feedback';renderIntro()}
+function renderIntro(){
+ const left=term();
+ $('#lgs').innerHTML=`<div class="eqrow"><span class="roman">I</span><span class="eq math">x = <span class="dragterm" id="drag" draggable="true">${left}</span></span></div>
+ <div class="eqrow"><span class="roman">II</span><span class="eq math">${T.c===1?'':T.c}<span class="target" id="target">x</span> + ${T.d===1?'':T.d}y = ${T.rhs}</span></div>`;
+ const drag=$('#drag'),tar=$('#target');
+ drag.addEventListener('dragstart',e=>e.dataTransfer.setData('text/plain','expr'));
+ drag.addEventListener('click',()=>{selectedDrag=true;drag.style.outline='3px solid #9abedb'});
+ tar.addEventListener('dragover',e=>{e.preventDefault();tar.classList.add('over')});tar.addEventListener('dragleave',()=>tar.classList.remove('over'));
+ tar.addEventListener('drop',e=>{e.preventDefault();tar.classList.remove('over');if(e.dataTransfer.getData('text/plain')==='expr')startBoard()});
+ tar.addEventListener('click',()=>{if(selectedDrag)startBoard()});
+}
+function startBoard(){phase=0;$('#intro').style.display='none';$('#board').style.display='block';renderBoard()}
+function inserted(){return `${T.c===1?'':T.c}(${term()}) + ${T.d===1?'':T.d}y = ${T.rhs}`}
+function expanded(){return `${T.c*T.a}y + ${T.c*T.b} + ${T.d}y = ${T.rhs}`}
+function combined(){return `${T.c*T.a+T.d}y + ${T.c*T.b} = ${T.rhs}`}
+function afterSub(){return `${T.c*T.a+T.d}y = ${T.rhs-T.c*T.b}`}
+function answer(){return `y = ${T.y}`}
+function renderBoard(){
+ closeModal(); $('#feedback').className='feedback'; const h=$('#history');h.innerHTML='';
+ if(phase===0){header('Klammer zuerst','Klicke die Klammer bzw. den eingeklammerten Ausdruck an.');addInteractiveInserted(h)}
+ if(phase===1){header('Jetzt vereinfachen','Klicke nacheinander die gleichartig eingefärbten Terme an, die du zusammenfassen möchtest.');addPlain(h,inserted(),'| Klammer auflösen');addCombineLine(h)}
+ if(phase===2){header('Variable freistellen','Klicke das Element an, das auf der linken Seite noch stört.');addPlain(h,inserted(),'| Klammer auflösen');addPlain(h,expanded(),'| zusammenfassen');addSolveLine(h)}
+ if(phase===3){header('Fast geschafft','Klicke den Faktor vor y an und löse nach y auf.');addPlain(h,inserted(),'| Klammer auflösen');addPlain(h,expanded(),'| zusammenfassen');addPlain(h,combined(),`| − ${T.c*T.b}`);addDivideLine(h)}
+ if(phase===4){header('y ist berechnet','Jetzt könntest du den Wert in Gleichung I zurückeinsetzen.');addPlain(h,inserted(),'| Klammer auflösen');addPlain(h,expanded(),'| zusammenfassen');addPlain(h,combined(),`| − ${T.c*T.b}`);addPlain(h,afterSub(),`| : ${T.c*T.a+T.d}`);addPlain(h,answer(),'✓')}
+}
+function header(a,b){$('#stepTitle').textContent=a;$('#stepHint').textContent=b}
+function row(){let r=document.createElement('div');r.className='line';let e=document.createElement('div');e.className='expression math';let o=document.createElement('div');o.className='operation';r.append(e,o);return [r,e,o]}
+function addPlain(h,ex,op){let [r,e,o]=row();e.textContent=ex;o.textContent=op;h.appendChild(r)}
+function tok(text,cls,type){let s=document.createElement('span');s.className='token '+cls;s.textContent=text;s.dataset.type=type;s.addEventListener('click',()=>selectToken(s));return s}
+function addInteractiveInserted(h){
+ let [r,e,o]=row();e.append(document.createTextNode(`${T.c===1?'':T.c}`));
+ let p=document.createElement('span');p.className='paren math';p.textContent=`(${term()})`;p.dataset.type='bracket';p.addEventListener('click',()=>selectToken(p));e.append(p,document.createTextNode(` + ${T.d===1?'':T.d}y = ${T.rhs}`));o.textContent='| ?';h.appendChild(r)
+}
+function addCombineLine(h){
+ let [r,e,o]=row();
+ e.append(tok(`${T.c*T.a}y`,'t1','yterm1'),document.createTextNode(' + '),tok(`${T.c*T.b}`,'t3','constant'),document.createTextNode(' + '),tok(`${T.d}y`,'t1','yterm2'),document.createTextNode(` = `),tok(`${T.rhs}`,'t2','rhs'));
+ o.textContent='| ?';h.appendChild(r)
+}
+function addSolveLine(h){
+ let [r,e,o]=row();e.append(tok(`${T.c*T.a+T.d}y`,'t1','coefterm'),document.createTextNode(' + '),tok(`${T.c*T.b}`,'t3','removeconst'),document.createTextNode(' = '),tok(`${T.rhs}`,'t2','rhs'));o.textContent='| ?';h.appendChild(r)
+}
+function addDivideLine(h){
+ let [r,e,o]=row();e.append(tok(`${T.c*T.a+T.d}`,'t4','factor'),document.createTextNode('y = '),tok(`${T.rhs-T.c*T.b}`,'t2','rhs'));o.textContent='| ?';h.appendChild(r)
+}
+function selectToken(el){
+ currentToken=el;const type=el.dataset.type;
+ if(phase===0&&type!=='bracket')return fail('Schau genau hin: Nach dem Einsetzen steht zuerst eine <b>Klammer</b> in der Gleichung. Die musst du zuerst bearbeiten.');
+ if(phase===1&&!['yterm1','yterm2'].includes(type))return fail('Diese Elemente kannst du jetzt nicht miteinander vereinfachen. Suche die <b>gleichartigen Terme mit y</b> – sie sind gleich eingefärbt.');
+ if(phase===2&&type!=='removeconst')return fail(`Um y freizustellen, muss zuerst die <b>+ ${T.c*T.b}</b> auf der linken Seite verschwinden.`);
+ if(phase===3&&type!=='factor')return fail(`Vor y steht noch der Faktor <b>${T.c*T.a+T.d}</b>. Genau diesen musst du jetzt bearbeiten.`);
+ openModal(el.textContent,type)
+}
+function openModal(text,type){
+ $('#selectedText').textContent=text;let A=$('#actions');A.innerHTML='';
+ let opts=[];
+ if(type==='bracket')opts=[['Klammer auflösen','expand'],['durch die Klammer teilen','wrong'],['Klammer weglassen','wrong']];
+ else if(['yterm1','yterm2'].includes(type))opts=[['mit dem anderen y-Term zusammenfassen','combine'],['auf die rechte Seite bringen','wrong'],['durch y teilen','wrong']];
+ else if(type==='removeconst')opts=[[`auf beiden Seiten − ${T.c*T.b}`,'subtract'],[`auf beiden Seiten + ${T.c*T.b}`,'wrong'],[`durch ${T.c*T.b} teilen`,'wrong']];
+ else if(type==='factor')opts=[[`beide Seiten durch ${T.c*T.a+T.d} teilen`,'divide'],[`beide Seiten − ${T.c*T.a+T.d}`,'wrong'],[`mit ${T.c*T.a+T.d} multiplizieren`,'wrong']];
+ opts.forEach(([lab,val])=>{let b=document.createElement('button');b.className='action';b.textContent=lab;b.addEventListener('click',()=>act(val));A.appendChild(b)});
+ $('#modalback').classList.add('show')
+}
+function act(v){
+ if(v==='wrong'){closeModal();return fail(explainWrong())}
+ if(v==='expand'){phase=1;renderBoard()}
+ if(v==='combine'){phase=2;renderBoard()}
+ if(v==='subtract'){phase=3;renderBoard()}
+ if(v==='divide'){phase=4;renderBoard()}
+}
+function explainWrong(){
+ if(phase===0)return `Die Klammer darf nicht einfach verschwinden. Der Faktor <b>${T.c}</b> vor der Klammer muss mit <b>jedem Term in der Klammer</b> multipliziert werden.`;
+ if(phase===1)return 'Beim Vereinfachen darfst du nur <b>gleichartige Terme</b> zusammenfassen – hier also die beiden y-Terme.';
+ if(phase===2)return `Du möchtest die <b>+ ${T.c*T.b}</b> entfernen. Dafür brauchst du die Gegenoperation <b>− ${T.c*T.b}</b> auf beiden Seiten.`;
+ return `Der Faktor ${T.c*T.a+T.d} steht als Multiplikation vor y. Die passende Gegenoperation ist deshalb <b>Teilen durch ${T.c*T.a+T.d}</b>.`
+}
+function fail(m){closeModal();let f=$('#feedback');f.innerHTML='👀 '+m;f.className='feedback show'}
+function closeModal(){$('#modalback').classList.remove('show')}
+$('#cancel').addEventListener('click',closeModal);$('#modalback').addEventListener('click',e=>{if(e.target===$('#modalback'))closeModal()});$('#new').addEventListener('click',make);
+make();
+})();
+</script>
+</body>
+</html>
